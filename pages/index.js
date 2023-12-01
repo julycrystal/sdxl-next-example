@@ -34,7 +34,7 @@ const MyPage = () => {
       headers: {
         "Content-type": "application/json",
       },
-      body: JSON.stringify({ prompt, image }),
+      body: JSON.stringify(image ? { prompt, image } : { prompt }),
     });
     const { id } = await response.json();
     setId(id);
