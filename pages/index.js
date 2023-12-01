@@ -23,30 +23,40 @@ const MyPage = () => {
   const [id, setId] = useState(null);
   const [imageUrl, setImageUrl] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const image = await getBase64Encoded(selectedFile);
-
-    // Send the prompt to the backend and get back an ID
-    const response = await fetch("/api/generate", {
-      method: "POST",
-      headers: {
-        "Content-type": "application/json",
-      },
-      body: JSON.stringify(image ? { prompt, image } : { prompt }),
-    });
-    const { id } = await response.json();
-    setId(id);
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: {
+          "Content-type": "application/json",
+        },
+        body: JSON.stringify(image ? { prompt, image } : { prompt }),
+      });
+      const { id } = await response.json();
+      setId(id);
+    } catch (err) {
+      alert(err.toString());
+      setIsLoading(false);
+      return;
+    }
 
     // Poll the backend for the image URL
     const pollInterval = setInterval(async () => {
-      const imageResponse = await fetch(`/api/image?id=${id}`);
-      const { output } = await imageResponse.json();
-      if (output && output.length > 0) {
-        const url = output[0];
-        setImageUrl(url);
+      try {
+        const imageResponse = await fetch(`/api/image?id=${id}`);
+        const { output } = await imageResponse.json();
+        if (output && output.length > 0) {
+          const url = output[0];
+          setImageUrl(url);
+        }
+      } finally {
         clearInterval(pollInterval);
+        setIsLoading(false);
       }
     }, 1000);
   };
@@ -81,8 +91,8 @@ const MyPage = () => {
           />
         </label>
 
-        <button className="form-button" type="submit">
-          Generate
+        <button className="form-button" type="submit" disabled={isLoading}>
+          {isLoading ? "Generating" : "Generate"}
         </button>
       </form>
       {imageUrl && <img className="image" src={imageUrl} />}
